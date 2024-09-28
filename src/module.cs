@@ -110,6 +110,7 @@ public unsafe class CSRModule : FhModule {
             var o = rew[i];
             if (o.work_id == work_id && o.entry_id == entry_id) {
                 o.last_updated = 0;
+                rew[i] = o;
                 return;
             }
         }
@@ -141,6 +142,7 @@ public unsafe class CSRModule : FhModule {
     }
 
     private static List<DisplayObject> rew = new(40);
+    private static u8[] colors = new u8[] { 0xE0, 0xB0, 0xA0 };
     public override void render_game() {
         draw_text(0, FhCharset.Us.to_bytes("CSR is running!"), x: 430, y: 5, color: 0x00, 0, scale: 0.5f, 0);
 
@@ -151,29 +153,23 @@ public unsafe class CSRModule : FhModule {
                   x: 430, y: 25, color: 0x00, 0, scale: 0.5f, 0);
 
         List<u8> works = new();
-        byte[] head = FhCharset.Us.to_bytes("Recent Signal Targets:");
-
-        for (i32 i = 0; i < head.Length; i++) {
-            works.Add(head[i]);
-        }
+        works.AddRange(FhCharset.Us.to_bytes("Recent Signal Targets:"));
 
         works.Add(0x2);
 
-        const u64 colors = 0x7040603050;
         for (i32 i = 0; i < rew.Count; i++) {
             var o = rew[i];
-            if (o.last_updated < 10) {
+            if (o.last_updated < 12) {
                 works.Add(0xA);
-                works.Add((u8)((colors >> (8 * (o.last_updated >> 1))) & 0xFF));
+                works.Add(colors[o.last_updated / 4]);
             }
 
-            byte[] work_id = FhCharset.Us.to_bytes($"{o.work_id:X4}:{o.entry_id:X4}, ");
-            for (i32 j = 0; j < 10; j++) {
-                works.Add(work_id[j]);
-            }
+            works.AddRange(FhCharset.Us.to_bytes($"{o.work_id:X4}:{o.entry_id:X4}"));
 
             works.Add(0xA);
-            works.Add(0x0);
+            works.Add(0x41);
+
+            works.AddRange(FhCharset.Us.to_bytes(", "));
 
             if (i % 2 == 1) works.Add(0x2);
         }
@@ -185,6 +181,7 @@ public unsafe class CSRModule : FhModule {
         for (i32 i = 0; i < rew.Count; i++) {
             var o = rew[i];
             o.last_updated++;
+            rew[i] = o;
         }
     }
 
