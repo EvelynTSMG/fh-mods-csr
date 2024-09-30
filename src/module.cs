@@ -116,7 +116,7 @@ public unsafe class CSRModule : FhModule {
         }
 
         // Can we just add?
-        if (rew.Count < 40) {
+        if (rew.Count < REW_MAX) {
             rew.Add(new DisplayObject { work_id = work_id, entry_id = entry_id, last_updated = 0 });
             return;
         }
@@ -141,16 +141,38 @@ public unsafe class CSRModule : FhModule {
         public i32 last_updated;
     }
 
-    private static List<DisplayObject> rew = new(40);
+    private const i32 REW_MAX = 42;
+    private static List<DisplayObject> rew = new(REW_MAX);
     private static u8[] colors = new u8[] { 0xE0, 0xB0, 0xA0 };
     public override void render_game() {
-        draw_text(0, FhCharset.Us.to_bytes("CSR is running!"), x: 430, y: 5, color: 0x00, 0, scale: 0.5f, 0);
+        int x = 430;
+        int y = 5;
+
+        draw_text(0, FhCharset.Us.to_bytes("CSR is running!"), x, y, color: 0x00, 0, scale: 0.5f, 0);
+        y += 10;
+
+        if (Globals.actors != null) {
+            Actor* tidus = Globals.actors;
+            List<u8> tidus_pos = new();
+            tidus_pos.AddRange(FhCharset.Us.to_bytes($"X: {tidus->chr_pos_vec.x:f4},"));
+            tidus_pos.Add(0x2);
+            tidus_pos.AddRange(FhCharset.Us.to_bytes($"Y: {tidus->chr_pos_vec.y:f4},"));
+            tidus_pos.Add(0x2);
+            tidus_pos.AddRange(FhCharset.Us.to_bytes($"Z: {tidus->chr_pos_vec.z:f4},"));
+            draw_text(0, tidus_pos.ToArray(), x, y, color: 0x00, 0, scale: 0.5f, 0);
+            y += 30;
+        }
 
         string event_name = Marshal.PtrToStringAnsi((isize)get_event_name(*(u32*)Globals.event_id))!;
-        draw_text(0, FhCharset.Us.to_bytes($"Event: {event_name}"), x: 430, y: 15, color: 0x00, 0, scale: 0.5f, 0);
+        draw_text(0, FhCharset.Us.to_bytes($"Event: {event_name}"), x, y, color: 0x00, 0, scale: 0.5f, 0);
+        y += 10;
 
         draw_text(0, FhCharset.Us.to_bytes($"Map|Spawn: {Globals.save_data->current_room_id}|{Globals.save_data->current_spawnpoint}"),
-                  x: 430, y: 25, color: 0x00, 0, scale: 0.5f, 0);
+                  x, y, color: 0x00, 0, scale: 0.5f, 0);
+        y += 10;
+
+        draw_text(0, FhCharset.Us.to_bytes($"Story Progress: {Globals.save_data->story_progress}"), x, y, color: 0x00, 0, scale: 0.5f, 0);
+        y += 10;
 
         List<u8> works = new();
         works.AddRange(FhCharset.Us.to_bytes("Recent Signal Targets:"));
@@ -164,17 +186,17 @@ public unsafe class CSRModule : FhModule {
                 works.Add(colors[o.last_updated / 4]);
             }
 
-            works.AddRange(FhCharset.Us.to_bytes($"{o.work_id:X4}:{o.entry_id:X4}"));
+            works.AddRange(FhCharset.Us.to_bytes($"{o.work_id:X2}:{o.entry_id:X2}"));
 
             works.Add(0xA);
             works.Add(0x41);
 
             works.AddRange(FhCharset.Us.to_bytes(", "));
 
-            if (i % 2 == 1) works.Add(0x2);
+            if (i % 3 == 2) works.Add(0x2);
         }
 
-        draw_text(0, works.ToArray(), x: 430, y: 35, color: 0x00, 0, scale: 0.5f, 0);
+        draw_text(0, works.ToArray(), x, y, color: 0x00, 0, scale: 0.5f, 0);
     }
 
     public override void post_update() {
